@@ -6,11 +6,11 @@ from computer_use_demo.gui_agent.llm_utils.llm_utils import is_image_path, encod
 
 
 
-def run_oai_interleaved(messages: list, system: str, llm: str, api_key: str, max_tokens=256, temperature=0):
+def run_oai_interleaved(messages: list, system: str, llm: str, api_key: str, max_tokens=256, temperature=0, base_url: str | None = None):
 
     api_key = api_key or os.environ.get("OPENAI_API_KEY")
-    if not api_key:
-        raise ValueError("OPENAI_API_KEY is not set")
+    if not api_key and not base_url: # If base_url is provided, API key might be optional (e.g. local LM Studio)
+        raise ValueError("OPENAI_API_KEY is not set and no base_url provided")
     
     headers = {"Content-Type": "application/json",
                "Authorization": f"Bearer {api_key}"}
@@ -67,9 +67,8 @@ def run_oai_interleaved(messages: list, system: str, llm: str, api_key: str, max
 
     # from IPython.core.debugger import Pdb; Pdb().set_trace()
 
-    response = requests.post(
-        "https://api.openai.com/v1/chat/completions", headers=headers, json=payload
-    )
+    endpoint = f"{base_url}/chat/completions" if base_url else "https://api.openai.com/v1/chat/completions"
+    response = requests.post(endpoint, headers=headers, json=payload)
 
     try:
         text = response.json()['choices'][0]['message']['content']

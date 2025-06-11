@@ -14,6 +14,8 @@ from computer_use_demo.tools.colorful_text import colorful_text_showui, colorful
 from computer_use_demo.tools.screen_capture import get_screenshot
 from computer_use_demo.gui_agent.llm_utils.oai import encode_image
 from computer_use_demo.tools.logger import logger
+from computer_use_demo.gui_agent.actor.uitars_agent import UITARS_Actor
+from computer_use_demo.gui_agent.actor.showui_actor_api import ShowUIActorAPI
 
 
 
@@ -24,6 +26,8 @@ class APIProvider(StrEnum):
     OPENAI = "openai"
     QWEN = "qwen"
     SSH = "ssh"
+    OPENROUTER = "openrouter"
+    LMSTUDIO = "lmstudio"
 
 
 PROVIDER_TO_DEFAULT_MODEL_NAME: dict[APIProvider, str] = {
@@ -33,6 +37,8 @@ PROVIDER_TO_DEFAULT_MODEL_NAME: dict[APIProvider, str] = {
     APIProvider.OPENAI: "gpt-4o",
     APIProvider.QWEN: "qwen2vl",
     APIProvider.SSH: "qwen2-vl-2b",
+    APIProvider.OPENROUTER: "qwen/qwen2.5-vl-72b-instruct:free",
+    APIProvider.LMSTUDIO: "showui-2b-lmstudio",
 }
 
 PLANNER_MODEL_CHOICES_MAPPING = {
@@ -46,6 +52,10 @@ PLANNER_MODEL_CHOICES_MAPPING = {
     "qwen2.5-vl-7b (local)": "qwen2.5-vl-7b-instruct",
     "qwen2-vl-2b (ssh)": "qwen2-vl-2b (ssh)",
     "qwen2-vl-7b (ssh)": "qwen2-vl-7b (ssh)",
+    "OpenRouter qwen/qwen2.5-vl-72b-instruct:free": "qwen/qwen2.5-vl-72b-instruct:free",
+    "LM Studio showui-2b": "showui-2b-lmstudio",
+    "LM Studio ui-tars-7b-dpo": "ui-tars-7b-dpo-lmstudio",
+    "LM Studio ui-tars-2b-sft": "ui-tars-2b-sft-lmstudio",
 }
 
 
@@ -66,7 +76,8 @@ def sampling_loop_sync(
     selected_screen: int = 0,
     showui_max_pixels: int = 1344,
     showui_awq_4bit: bool = False,
-    ui_tars_url: str = ""
+    ui_tars_url: str = "",
+    lmstudio_base_url: str = ""
 ):
     """
     Synchronous agentic sampling loop for the assistant/tool interaction of computer use.
@@ -118,6 +129,34 @@ def sampling_loop_sync(
             api_response_callback=api_response_callback,
             selected_screen=selected_screen,
             output_callback=output_callback,
+        )
+        loop_mode = "planner + actor"
+
+    elif planner_model == 'qwen/qwen2.5-vl-72b-instruct:free': # OpenRouter model
+        from computer_use_demo.gui_agent.planner.api_vlm_planner import APIVLMPlanner
+        planner = APIVLMPlanner(
+            model=planner_model, # This is 'qwen/qwen2.5-vl-72b-instruct:free'
+            provider=APIProvider.OPENROUTER,
+            system_prompt_suffix=system_prompt_suffix,
+            api_key=api_key,
+            api_response_callback=api_response_callback,
+            selected_screen=selected_screen,
+            output_callback=output_callback,
+            base_url="https://openrouter.ai/api/v1", # Explicitly pass OpenRouter base URL
+        )
+        loop_mode = "planner + actor"
+
+    elif planner_model in ["showui-2b-lmstudio", "ui-tars-7b-dpo-lmstudio", "ui-tars-2b-sft-lmstudio"]: # LM Studio models
+        from computer_use_demo.gui_agent.planner.api_vlm_planner import APIVLMPlanner
+        planner = APIVLMPlanner(
+            model=planner_model,
+            provider=APIProvider.LMSTUDIO,
+            system_prompt_suffix=system_prompt_suffix,
+            api_key=api_key, # This will be the LM Studio URL from app.py state, or empty
+            api_response_callback=api_response_callback,
+            selected_screen=selected_screen,
+            output_callback=output_callback,
+            base_url=lmstudio_base_url, # Pass LM Studio base URL
         )
         loop_mode = "planner + actor"
 
@@ -186,6 +225,48 @@ def sampling_loop_sync(
             awq_4bit=showui_awq_4bit
         )
         
+        executor = ShowUIExecutor(
+            output_callback=output_callback,
+            tool_output_callback=tool_output_callback,
+            selected_screen=selected_screen
+        )
+
+    elif actor_model == "LM Studio showui-2b":
+        actor = ShowUIActorAPI(
+            base_url=lmstudio_base_url,
+            model_name="showui-2b", # Assuming LM Studio serves a model with this name
+            output_callback=output_callback,
+            selected_screen=selected_screen,
+            api_key="" # LM Studio typically doesn't require an API key for local setups
+        )
+        executor = ShowUIExecutor(
+            output_callback=output_callback,
+            tool_output_callback=tool_output_callback,
+            selected_screen=selected_screen
+        )
+
+    elif actor_model == "LM Studio ui-tars-7b-dpo":
+        actor = UITARS_Actor(
+            ui_tars_url=lmstudio_base_url,
+            model_name="ui-tars-7b-dpo", # Assuming LM Studio serves a model with this name
+            output_callback=output_callback,
+            selected_screen=selected_screen,
+            api_key="" # LM Studio typically doesn't require an API key
+        )
+        executor = ShowUIExecutor(
+            output_callback=output_callback,
+            tool_output_callback=tool_output_callback,
+            selected_screen=selected_screen
+        )
+
+    elif actor_model == "LM Studio ui-tars-2b-sft":
+        actor = UITARS_Actor(
+            ui_tars_url=lmstudio_base_url,
+            model_name="ui-tars-2b-sft", # Assuming LM Studio serves a model with this name
+            output_callback=output_callback,
+            selected_screen=selected_screen,
+            api_key="" # LM Studio typically doesn't require an API key
+        )
         executor = ShowUIExecutor(
             output_callback=output_callback,
             tool_output_callback=tool_output_callback,
