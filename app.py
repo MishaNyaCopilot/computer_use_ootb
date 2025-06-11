@@ -279,6 +279,7 @@ with gr.Blocks(theme=gr.themes.Soft()) as demo:
                              "qwen2-vl-7b (ssh)",
                              "qwen2.5-vl-7b (ssh)", 
                              "claude-3-5-sonnet-20241022",
+                              "OpenRouter qwen/qwen2.5-vl-72b-instruct:free"],
                     value="gpt-4o",
                     interactive=True,
                 )
@@ -475,8 +476,8 @@ with gr.Blocks(theme=gr.themes.Soft()) as demo:
             provider_interactive = False
             api_key_interactive = True
             api_key_placeholder = "OpenRouter API Key"
-            actor_model_choices = ["ShowUI", "UI-TARS"] # Assuming compatible with standard actors
-            actor_model_value = "ShowUI"
+            actor_model_choices = ["ShowUI", "UI-TARS", "LM Studio showui-2b", "LM Studio ui-tars-7b-dpo", "LM Studio ui-tars-2b-sft"]
+            actor_model_value = "ShowUI" # Default actor
             actor_model_interactive = True
             api_key_type = "password"
 
