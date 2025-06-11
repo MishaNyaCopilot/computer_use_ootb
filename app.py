@@ -279,7 +279,6 @@ with gr.Blocks(theme=gr.themes.Soft()) as demo:
                              "qwen2-vl-7b (ssh)",
                              "qwen2.5-vl-7b (ssh)", 
                              "claude-3-5-sonnet-20241022",
-                              "OpenRouter qwen/qwen2.5-vl-72b-instruct:free"],
                     value="gpt-4o",
                     interactive=True,
                 )
