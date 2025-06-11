@@ -31,12 +31,13 @@ call_user() # Submit the task and call the user when the task is unsolvable, or 
 - Do not generate any other text.
 """
 
-    def __init__(self, ui_tars_url, output_callback, api_key="", selected_screen=0):
+    def __init__(self, ui_tars_url, output_callback, api_key="", selected_screen=0, model_name: str = "ui-tars"):
 
         self.ui_tars_url = ui_tars_url
         self.ui_tars_client = OpenAI(base_url=self.ui_tars_url, api_key=api_key)
         self.selected_screen = selected_screen
         self.output_callback = output_callback
+        self.model_name = model_name
 
         self.grounding_system_prompt = self._NAV_SYSTEM_GROUNDING.format()
 
@@ -50,10 +51,10 @@ call_user() # Submit the task and call the user when the task is unsolvable, or 
         screenshot_path = str(screenshot_path)
         screenshot_base64 = encode_image(screenshot_path)
 
-        logger.info(f"Sending messages to UI-TARS on {self.ui_tars_url}: {task}, screenshot: {screenshot_path}")
+        logger.info(f"Sending messages to UI-TARS on {self.ui_tars_url} with model {self.model_name}: {task}, screenshot: {screenshot_path}")
 
         response = self.ui_tars_client.chat.completions.create(
-            model="ui-tars",
+            model=self.model_name,
             messages=[
                 {"role": "system", "content": self.grounding_system_prompt},
                 {"role": "user", "content": [

@@ -61,6 +61,10 @@ def setup_state(state):
         state["anthropic_api_key"] = os.getenv("ANTHROPIC_API_KEY", "")    
     if "qwen_api_key" not in state:
         state["qwen_api_key"] = os.getenv("QWEN_API_KEY", "")
+    if "openrouter_api_key" not in state:
+        state["openrouter_api_key"] = os.getenv("OPENROUTER_API_KEY", "")
+    if "lmstudio_url" not in state:
+        state["lmstudio_url"] = os.getenv("LMSTUDIO_URL", "http://localhost:1234/v1")
     if "ui_tars_url" not in state:
         state["ui_tars_url"] = ""
 
@@ -72,6 +76,10 @@ def setup_state(state):
             state["planner_api_key"] = state["anthropic_api_key"]
         elif state["planner_provider"] == "qwen":
             state["planner_api_key"] = state["qwen_api_key"]
+        elif state["planner_provider"] == "openrouter":
+            state["planner_api_key"] = state["openrouter_api_key"]
+        elif state["planner_provider"] == "lmstudio":
+            state["planner_api_key"] = state["lmstudio_url"]
         else:
             state["planner_api_key"] = ""
 
@@ -232,7 +240,8 @@ def process_input(user_input, state):
         only_n_most_recent_images=state["only_n_most_recent_images"],
         selected_screen=state['selected_screen'],
         showui_max_pixels=state['max_pixels'],
-        showui_awq_4bit=state['awq_4bit']
+        showui_awq_4bit=state['awq_4bit'],
+        lmstudio_base_url=state["lmstudio_url"]
     ):  
         if loop_msg is None:
             yield state['chatbot_messages']
@@ -269,7 +278,11 @@ with gr.Blocks(theme=gr.themes.Soft()) as demo:
                              "qwen2-vl-2b (ssh)", 
                              "qwen2-vl-7b (ssh)",
                              "qwen2.5-vl-7b (ssh)", 
-                             "claude-3-5-sonnet-20241022"],
+                             "claude-3-5-sonnet-20241022",
+                             "OpenRouter qwen/qwen2.5-vl-72b-instruct:free",
+                             "LM Studio showui-2b",
+                             "LM Studio ui-tars-7b-dpo",
+                             "LM Studio ui-tars-2b-sft"],
                     value="gpt-4o",
                     interactive=True,
                 )
@@ -292,7 +305,10 @@ with gr.Blocks(theme=gr.themes.Soft()) as demo:
             with gr.Column():
                 actor_model = gr.Dropdown(
                     label="Actor Model",
-                    choices=["ShowUI", "UI-TARS"],
+                    choices=["ShowUI", "UI-TARS",
+                             "LM Studio showui-2b",
+                             "LM Studio ui-tars-7b-dpo",
+                             "LM Studio ui-tars-2b-sft"],
                     value="ShowUI",
                     interactive=True,
                 )
@@ -457,6 +473,50 @@ with gr.Blocks(theme=gr.themes.Soft()) as demo:
             actor_model_interactive = False
             api_key_type = "password"  # Display API key in password form
 
+        elif model_selection == "OpenRouter qwen/qwen2.5-vl-72b-instruct:free":
+            provider_choices = ["openrouter"]
+            provider_value = "openrouter"
+            provider_interactive = False
+            api_key_interactive = True
+            api_key_placeholder = "OpenRouter API Key"
+            actor_model_choices = ["ShowUI", "UI-TARS"] # Assuming compatible with standard actors
+            actor_model_value = "ShowUI"
+            actor_model_interactive = True
+            api_key_type = "password"
+
+        elif model_selection == "LM Studio showui-2b":
+            provider_choices = ["lmstudio"]
+            provider_value = "lmstudio"
+            provider_interactive = False
+            api_key_interactive = True
+            api_key_placeholder = "LM Studio URL (e.g., http://localhost:1234/v1)"
+            actor_model_choices = ["LM Studio showui-2b"] # Pair with corresponding actor
+            actor_model_value = "LM Studio showui-2b"
+            actor_model_interactive = True
+            api_key_type = "text"
+
+        elif model_selection == "LM Studio ui-tars-7b-dpo":
+            provider_choices = ["lmstudio"]
+            provider_value = "lmstudio"
+            provider_interactive = False
+            api_key_interactive = True
+            api_key_placeholder = "LM Studio URL (e.g., http://localhost:1234/v1)"
+            actor_model_choices = ["LM Studio ui-tars-7b-dpo"] # Pair with corresponding actor
+            actor_model_value = "LM Studio ui-tars-7b-dpo"
+            actor_model_interactive = True
+            api_key_type = "text"
+
+        elif model_selection == "LM Studio ui-tars-2b-sft":
+            provider_choices = ["lmstudio"]
+            provider_value = "lmstudio"
+            provider_interactive = False
+            api_key_interactive = True
+            api_key_placeholder = "LM Studio URL (e.g., http://localhost:1234/v1)"
+            actor_model_choices = ["LM Studio ui-tars-2b-sft"] # Pair with corresponding actor
+            actor_model_value = "LM Studio ui-tars-2b-sft"
+            actor_model_interactive = True
+            api_key_type = "text"
+
         else:
             raise ValueError(f"Model {model_selection} not supported")
 
@@ -472,6 +532,10 @@ with gr.Blocks(theme=gr.themes.Soft()) as demo:
             state["api_key"] = state.get("qwen_api_key", "")
         elif provider_value == "local":
             state["api_key"] = ""
+        elif provider_value == "openrouter":
+            state["api_key"] = state.get("openrouter_api_key", "")
+        elif provider_value == "lmstudio":
+            state["api_key"] = state.get("lmstudio_url", "http://localhost:1234/v1")
         # SSH的情况已经在上面处理过了，这里不需要重复处理
 
         provider_update = gr.update(
@@ -553,8 +617,14 @@ with gr.Blocks(theme=gr.themes.Soft()) as demo:
         """Handle API key updates"""
         state["planner_api_key"] = api_key_value
         if state["planner_provider"] == "ssh":
+            state["api_key"] = api_key_value # This seems to be a bug, ssh uses planner_api_key directly.
+        elif state["planner_provider"] == APIProvider.OPENROUTER:
+            state["openrouter_api_key"] = api_key_value
             state["api_key"] = api_key_value
-        logger.info(f"API key updated: provider={state['planner_provider']}, api_key={state['api_key']}")
+        elif state["planner_provider"] == APIProvider.LMSTUDIO:
+            state["lmstudio_url"] = api_key_value
+            state["api_key"] = api_key_value
+        logger.info(f"API key updated: provider={state['planner_provider']}, api_key={state['planner_api_key']}") # Log planner_api_key
 
     with gr.Accordion("Quick Start Prompt", open=False):  # open=False 表示默认收
         # Initialize Gradio interface with the dropdowns
