@@ -279,10 +279,6 @@ with gr.Blocks(theme=gr.themes.Soft()) as demo:
                              "qwen2-vl-7b (ssh)",
                              "qwen2.5-vl-7b (ssh)", 
                              "claude-3-5-sonnet-20241022",
-                             "OpenRouter qwen/qwen2.5-vl-72b-instruct:free",
-                             "LM Studio showui-2b",
-                             "LM Studio ui-tars-7b-dpo",
-                             "LM Studio ui-tars-2b-sft"],
                     value="gpt-4o",
                     interactive=True,
                 )
@@ -483,39 +479,6 @@ with gr.Blocks(theme=gr.themes.Soft()) as demo:
             actor_model_value = "ShowUI"
             actor_model_interactive = True
             api_key_type = "password"
-
-        elif model_selection == "LM Studio showui-2b":
-            provider_choices = ["lmstudio"]
-            provider_value = "lmstudio"
-            provider_interactive = False
-            api_key_interactive = True
-            api_key_placeholder = "LM Studio URL (e.g., http://localhost:1234/v1)"
-            actor_model_choices = ["LM Studio showui-2b"] # Pair with corresponding actor
-            actor_model_value = "LM Studio showui-2b"
-            actor_model_interactive = True
-            api_key_type = "text"
-
-        elif model_selection == "LM Studio ui-tars-7b-dpo":
-            provider_choices = ["lmstudio"]
-            provider_value = "lmstudio"
-            provider_interactive = False
-            api_key_interactive = True
-            api_key_placeholder = "LM Studio URL (e.g., http://localhost:1234/v1)"
-            actor_model_choices = ["LM Studio ui-tars-7b-dpo"] # Pair with corresponding actor
-            actor_model_value = "LM Studio ui-tars-7b-dpo"
-            actor_model_interactive = True
-            api_key_type = "text"
-
-        elif model_selection == "LM Studio ui-tars-2b-sft":
-            provider_choices = ["lmstudio"]
-            provider_value = "lmstudio"
-            provider_interactive = False
-            api_key_interactive = True
-            api_key_placeholder = "LM Studio URL (e.g., http://localhost:1234/v1)"
-            actor_model_choices = ["LM Studio ui-tars-2b-sft"] # Pair with corresponding actor
-            actor_model_value = "LM Studio ui-tars-2b-sft"
-            actor_model_interactive = True
-            api_key_type = "text"
 
         else:
             raise ValueError(f"Model {model_selection} not supported")

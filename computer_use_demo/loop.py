@@ -53,9 +53,6 @@ PLANNER_MODEL_CHOICES_MAPPING = {
     "qwen2-vl-2b (ssh)": "qwen2-vl-2b (ssh)",
     "qwen2-vl-7b (ssh)": "qwen2-vl-7b (ssh)",
     "OpenRouter qwen/qwen2.5-vl-72b-instruct:free": "qwen/qwen2.5-vl-72b-instruct:free",
-    "LM Studio showui-2b": "showui-2b-lmstudio",
-    "LM Studio ui-tars-7b-dpo": "ui-tars-7b-dpo-lmstudio",
-    "LM Studio ui-tars-2b-sft": "ui-tars-2b-sft-lmstudio",
 }
 
 
@@ -143,20 +140,6 @@ def sampling_loop_sync(
             selected_screen=selected_screen,
             output_callback=output_callback,
             base_url="https://openrouter.ai/api/v1", # Explicitly pass OpenRouter base URL
-        )
-        loop_mode = "planner + actor"
-
-    elif planner_model in ["showui-2b-lmstudio", "ui-tars-7b-dpo-lmstudio", "ui-tars-2b-sft-lmstudio"]: # LM Studio models
-        from computer_use_demo.gui_agent.planner.api_vlm_planner import APIVLMPlanner
-        planner = APIVLMPlanner(
-            model=planner_model,
-            provider=APIProvider.LMSTUDIO,
-            system_prompt_suffix=system_prompt_suffix,
-            api_key=api_key, # This will be the LM Studio URL from app.py state, or empty
-            api_response_callback=api_response_callback,
-            selected_screen=selected_screen,
-            output_callback=output_callback,
-            base_url=lmstudio_base_url, # Pass LM Studio base URL
         )
         loop_mode = "planner + actor"
 
