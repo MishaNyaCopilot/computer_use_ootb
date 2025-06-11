@@ -30,6 +30,7 @@ class APIVLMPlanner:
         only_n_most_recent_images: int | None = None,
         selected_screen: int = 0,
         print_usage: bool = True,
+        base_url: str | None = None,
     ):
         if model == "gpt-4o":
             self.model = "gpt-4o-2024-11-20"
@@ -55,6 +56,7 @@ class APIVLMPlanner:
         self.selected_screen = selected_screen
         self.output_callback = output_callback
         self.system_prompt = self._get_system_prompt() + self.system_prompt_suffix
+        self.base_url = base_url
 
 
         self.print_usage = print_usage
@@ -92,20 +94,28 @@ class APIVLMPlanner:
         
         print(f"Sending messages to VLMPlanner: {planner_messages}")
 
-        if self.model == "gpt-4o-2024-11-20":
+        # Use APIProvider enum for provider checks
+        from computer_use_demo.loop import APIProvider
+
+        if self.provider == APIProvider.OPENAI or self.provider == APIProvider.OPENROUTER:
+            # This will now handle gpt-4o, gpt-4o-mini, and OpenRouter models if self.model is set correctly
             vlm_response, token_usage = run_oai_interleaved(
                 messages=planner_messages,
                 system=self.system_prompt,
-                llm=self.model,
+                llm=self.model, # Ensure self.model is the specific model string like "gpt-4o-2024-11-20" or "qwen/qwen2.5-vl-72b-instruct:free"
                 api_key=self.api_key,
                 max_tokens=self.max_tokens,
                 temperature=0,
+                base_url=self.base_url, # Pass the base_url here
             )
-            print(f"oai token usage: {token_usage}")
+            print(f"{self.provider} token usage: {token_usage}")
             self.total_token_usage += token_usage
-            self.total_cost += (token_usage * 0.15 / 1000000)  # https://openai.com/api/pricing/
+            # TODO: Cost calculation will need to be provider-specific
+            if self.provider == APIProvider.OPENAI:
+                 self.total_cost += (token_usage * 0.15 / 1000000)  # Example cost for OpenAI
+            # Add cost calculation for OpenRouter if available
             
-        elif self.model == "qwen2-vl-max":
+        elif self.provider == APIProvider.QWEN and self.model == "qwen2-vl-max": # Specific check for qwen via its own API
             vlm_response, token_usage = run_qwen(
                 messages=planner_messages,
                 system=self.system_prompt,
@@ -117,7 +127,8 @@ class APIVLMPlanner:
             print(f"qwen token usage: {token_usage}")
             self.total_token_usage += token_usage
             self.total_cost += (token_usage * 0.02 / 7.25 / 1000)  # 1USD=7.25CNY, https://help.aliyun.com/zh/dashscope/developer-reference/tongyi-qianwen-vl-plus-api
-        elif "Qwen" in self.model:
+
+        elif self.provider == APIProvider.SSH: # handles "Qwen" in self.model via SSH
             # 从api_key中解析host和port
             try:
                 ssh_host, ssh_port = self.api_key.split(":")
